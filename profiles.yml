@@ -1,0 +1,7 @@
+clinical_trials:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', 'clinical_trials.duckdb') }}"
+      threads: 4

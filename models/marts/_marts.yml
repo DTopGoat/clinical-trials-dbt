@@ -1,0 +1,140 @@
+version: 2
+models:
+- name: fact_studies
+  description: One row per completed interventional cancer study started 2015-2016. Central fact of the star schema.
+  columns:
+  - name: nct_id
+    description: Primary key; ClinicalTrials.gov ID.
+    data_tests:
+    - unique
+    - not_null
+  - name: lead_sponsor_key
+    description: FK to dim_sponsors.
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('dim_sponsors')
+          field: sponsor_key
+  - name: phase
+    description: Normalized trial phase.
+  - name: lead_sponsor_class
+    description: Sponsor type as reported (INDUSTRY, NIH, OTHER = academic/hospital, etc.).
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - INDUSTRY
+          - NIH
+          - FED
+          - OTHER_GOV
+          - NETWORK
+          - INDIV
+          - OTHER
+          - UNKNOWN
+  - name: enrollment_count
+    description: Actual enrollment (participants).
+    data_tests:
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 0
+  - name: days_to_completion
+    description: Days from start_date to study completion_date.
+  - name: days_to_primary_completion
+    description: Days from start_date to primary completion (last primary-endpoint data collected).
+  - name: days_completion_to_results
+    description: Days from completion to first results posting (null if no results posted).
+  - name: has_results
+    description: True when results have been posted to ClinicalTrials.gov.
+  - name: site_count
+    description: Number of distinct listed sites.
+- name: dim_sponsors
+  description: Sponsor organizations with lead/collaborator activity counts.
+  columns:
+  - name: sponsor_key
+    data_tests:
+    - unique
+    - not_null
+  - name: sponsor_name
+    data_tests:
+    - unique
+    - not_null
+- name: dim_conditions
+  description: Distinct normalized conditions with study counts.
+  columns:
+  - name: condition_key
+    data_tests:
+    - unique
+    - not_null
+- name: dim_sites
+  description: Distinct trial sites (facility + city + state + country) with study counts.
+  columns:
+  - name: site_key
+    data_tests:
+    - unique
+    - not_null
+- name: bridge_study_conditions
+  description: Many-to-many link between studies and conditions.
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns:
+        - nct_id
+        - condition_key
+  columns:
+  - name: nct_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('fact_studies')
+          field: nct_id
+  - name: condition_key
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('dim_conditions')
+          field: condition_key
+- name: bridge_study_sponsors
+  description: Many-to-many link between studies and sponsor organizations, with role.
+  columns:
+  - name: nct_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('fact_studies')
+          field: nct_id
+  - name: sponsor_key
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('dim_sponsors')
+          field: sponsor_key
+- name: fact_study_sites
+  description: Study-to-site fact (one row per study per site).
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns:
+        - nct_id
+        - site_key
+  columns:
+  - name: site_key
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('dim_sites')
+          field: site_key
+  - name: nct_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('fact_studies')
+          field: nct_id
+- name: mart_enrollment_duration_by_phase
+  description: Dashboard-ready aggregates of enrollment and duration by phase and lead sponsor class.
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns:
+        - phase
+        - lead_sponsor_class

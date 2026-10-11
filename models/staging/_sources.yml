@@ -1,0 +1,22 @@
+version: 2
+sources:
+- name: ctgov
+  description: Raw CSV extracts from the ClinicalTrials.gov API v2 (see extract/extract_ctgov.py).
+  meta:
+    external_location: read_csv('data/raw/{name}.csv', header=true, all_varchar=true)
+  tables:
+  - name: studies
+    description: One row per study (NCT ID).
+    columns:
+    - name: nct_id
+      data_tests:
+      - unique
+      - not_null
+  - name: sponsors
+    description: Lead sponsor and collaborators, one row per study-organization role.
+  - name: conditions
+    description: Conditions listed on each study, as entered by the sponsor.
+  - name: locations
+    description: Trial sites (facility, city, state, country) listed on each study.
+  - name: interventions
+    description: Interventions (drug, procedure, device, etc.) per study.

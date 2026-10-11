@@ -1,0 +1,94 @@
+version: 2
+models:
+- name: stg_ctgov__studies
+  description: Typed, cleaned study records. Partial (YYYY-MM) dates resolve to the first of the month.
+  columns:
+  - name: nct_id
+    description: ClinicalTrials.gov registry identifier.
+    data_tests:
+    - unique
+    - not_null
+  - name: overall_status
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - COMPLETED
+  - name: study_type
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - INTERVENTIONAL
+  - name: start_date
+    description: Actual or anticipated study start date.
+    data_tests:
+    - not_null
+- name: stg_ctgov__sponsors
+  description: Study-to-organization roles (lead sponsor and collaborators).
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns:
+        - nct_id
+        - sponsor_name
+        - sponsor_role
+  columns:
+  - name: nct_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('stg_ctgov__studies')
+          field: nct_id
+  - name: sponsor_role
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - LEAD
+          - COLLABORATOR
+- name: stg_ctgov__conditions
+  description: Conditions per study, with a whitespace/case-normalized name for grouping.
+  columns:
+  - name: nct_id
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('stg_ctgov__studies')
+          field: nct_id
+  - name: condition_name_normalized
+    data_tests:
+    - not_null
+- name: stg_ctgov__locations
+  description: Distinct trial sites per study.
+  columns:
+  - name: nct_id
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('stg_ctgov__studies')
+          field: nct_id
+  - name: country
+    data_tests:
+    - not_null
+- name: stg_ctgov__interventions
+  description: Distinct interventions per study.
+  columns:
+  - name: intervention_type
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - DRUG
+          - DEVICE
+          - BIOLOGICAL
+          - PROCEDURE
+          - RADIATION
+          - BEHAVIORAL
+          - GENETIC
+          - DIETARY_SUPPLEMENT
+          - COMBINATION_PRODUCT
+          - DIAGNOSTIC_TEST
+          - OTHER

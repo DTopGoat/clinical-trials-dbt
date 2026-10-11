@@ -1,0 +1,30 @@
+version: 2
+models:
+- name: int_studies__enriched
+  description: Study grain with normalized phase, derived durations (days) and site/condition/intervention counts.
+  columns:
+  - name: nct_id
+    data_tests:
+    - unique
+    - not_null
+  - name: phase
+    description: Normalized phase label (combined phases such as PHASE1/2 kept as one value).
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - EARLY_PHASE1
+          - PHASE1
+          - PHASE1/2
+          - PHASE2
+          - PHASE2/3
+          - PHASE3
+          - PHASE4
+          - NOT_APPLICABLE
+- name: int_sponsors__deduplicated
+  description: One row per sponsor name; sponsor_class is the most frequent class reported for that name.
+  columns:
+  - name: sponsor_key
+    data_tests:
+    - unique
+    - not_null
